@@ -471,9 +471,9 @@ def get_index_page() -> str:
     for key, service in services.items():
         is_default = service.get("is_default", False)
         delete_btn = "" if is_default else f'<button class="delete-btn" onclick="event.preventDefault(); deleteService(\'{key}\')">×</button>'
-        # 通过代理访问
+        # 直接打开后端服务（新标签页，绕过代理问题）
         cards_html += f"""
-            <a href="/{key}/" class="card" style="border-color: {service['color']}40;"
+            <a href="{service['url']}" target="_blank" class="card" style="border-color: {service['color']}40;"
                onmouseover="this.style.borderColor='{service['color']}'"
                onmouseout="this.style.borderColor='{service['color']}40'">
                 {delete_btn}
@@ -572,15 +572,16 @@ async def proxy_service(service_key: str, request: Request):
     
     # 构建目标 URL（移除 service_key 前缀）
     path = request.url.path
-    if path == f"/{service_key}" or path == f"/{service_key}/":
+    prefix = f"/{service_key}"
+    if path == prefix or path == prefix + "/":
         path = "/"
-    else:
-        path = path[len(f"/{service_key}"):]
-        if not path:
-            path = "/"
+    elif path.startswith(prefix + "/"):
+        path = "/" + path[len(prefix) + 1:]
+    elif path.startswith(prefix):
+        path = "/" + path[len(prefix):]
     if request.url.query:
-        path += f"?{request.url.query}"
-    url = f"{target_url}{path}"
+        path += "?" + request.url.query
+    url = target_url + path
     
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
         try:
@@ -607,7 +608,7 @@ async def proxy_service(service_key: str, request: Request):
                 if location:
                     # 重写重定向 URL 到代理路径
                     if location.startswith("/"):
-                        location = f"/{service_key}{location}"
+                        location = prefix + location
                     return RedirectResponse(url=location, status_code=response.status_code)
             
             # 透明转发响应 headers
@@ -620,7 +621,7 @@ async def proxy_service(service_key: str, request: Request):
                     if key.lower() == "set-cookie":
                         cookie_val = v.decode()
                         if "Path=/" in cookie_val:
-                            cookie_val = cookie_val.replace("Path=/", f"Path=/{service_key}/")
+                            cookie_val = cookie_val.replace("Path=/", f"Path={prefix}/")
                         response_headers[key] = cookie_val
                     else:
                         response_headers[key] = v.decode()
@@ -629,16 +630,11 @@ async def proxy_service(service_key: str, request: Request):
             content = response.content
             if "text/html" in response.headers.get("content-type", ""):
                 html = content.decode("utf-8", errors="ignore")
-                # 重写相对路径
                 import re
-                # href="/xxx" -> href="/{service_key}/xxx"
-                html = re.sub(r'href="/(?!/)"', f'href="/{service_key}/', html)
+                # href="/xxx" -> href="/{service_key}/xxx" (排除已有前缀的)
+                html = re.sub(r'href="/(?!' + service_key + r'/)([^/"]+)"', f'href="{prefix}/\\1"', html)
                 # src="/xxx" -> src="/{service_key}/xxx"
-                html = re.sub(r'src="/(?!/)"', f'src="/{service_key}/', html)
-                # 重写 API 路径
-                html = re.sub(r'fetch\(["\']/', f'fetch(["\'/{service_key}/', html)
-                html = re.sub(r'axios\.get\(["\']/', f'axios.get(["\'/{service_key}/', html)
-                html = re.sub(r'axios\.post\(["\']/', f'axios.post(["\'/{service_key}/', html)
+                html = re.sub(r'src="/(?!' + service_key + r'/)([^/"]+)"', f'src="{prefix}/\\1"', html)
                 content = html.encode("utf-8")
             
             return Response(
