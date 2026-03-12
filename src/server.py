@@ -566,8 +566,7 @@ async def proxy_service(service_key: str, request: Request):
     services = load_services()
     if service_key not in services:
         raise HTTPException(status_code=404, detail="Service not found")
-    if not get_current_user(request):
-        raise HTTPException(status_code=302, headers={"Location": "/login"})
+    # 移除认证检查，让后端服务自己处理认证
     service = services[service_key]
     target_url = service["url"]
     path = request.url.path[len(f"/{service_key}"):]
