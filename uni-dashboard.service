@@ -1,0 +1,14 @@
+[Unit]
+Description=Uni Dashboard - 统一入口门户
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/uni-dashboard
+ExecStart=/usr/bin/python3 /opt/uni-dashboard/server.py --port 18780
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
