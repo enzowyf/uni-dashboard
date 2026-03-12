@@ -1,6 +1,6 @@
 {
-  "name": "enzo-portal",
-  "displayName": "Enzo Portal",
+  "name": "uni-dashboard",
+  "displayName": "Uni Dashboard",
   "version": "1.1.0",
   "type": "experience",
   "description": "统一入口门户 - 将 Gateway Dashboard、Memory Viewer 等多个 Web UI 整合到单一端口，支持 SSH 映射和公网访问两种模式",
