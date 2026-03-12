@@ -69,6 +69,12 @@ app = FastAPI(title="Uni Dashboard")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # === 默认服务 ===
+# 预定义颜色
+COLORS = {
+    "gateway": "#e94560",
+    "default": "#4ecdc4"
+}
+
 def get_default_services() -> Dict[str, Any]:
     """获取默认服务配置"""
     gateway_config = CONFIG.get("gateway", {})
@@ -78,7 +84,7 @@ def get_default_services() -> Dict[str, Any]:
             "url": gateway_config.get("url", "http://localhost:18789"),
             "icon": gateway_config.get("icon", "⚡"),
             "desc": gateway_config.get("desc", "网关控制面板 - 管理会话、查看日志、配置服务"),
-            "color": gateway_config.get("color", "#e94560"),
+            "color": COLORS["gateway"],
             "is_default": True
         }
     }
@@ -102,7 +108,7 @@ def save_services(services: Dict[str, Any]):
     """保存服务配置"""
     SERVICES_FILE.write_text(json.dumps(services, indent=2, ensure_ascii=False))
 
-def add_service(key: str, name: str, port: int, icon: str = "🔗", desc: str = "", color: str = "#4ecdc4") -> bool:
+def add_service(key: str, name: str, port: int, icon: str = "🔗", desc: str = "") -> bool:
     """添加新服务"""
     services = load_services()
     if key in services:
@@ -112,7 +118,7 @@ def add_service(key: str, name: str, port: int, icon: str = "🔗", desc: str = 
         "url": f"http://localhost:{port}",
         "icon": icon,
         "desc": desc or f"{name} - 端口 {port}",
-        "color": color,
+        "color": COLORS["default"],
         "is_default": False
     }
     save_services(services)

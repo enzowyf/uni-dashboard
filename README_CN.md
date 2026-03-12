@@ -99,8 +99,7 @@ http://公网IP:18780
     "name": "Gateway Dashboard",
     "url": "http://localhost:18789",
     "icon": "⚡",
-    "desc": "网关控制面板 - 管理会话、查看日志、配置服务",
-    "color": "#e94560"
+    "desc": "网关控制面板 - 管理会话、查看日志、配置服务"
   },
   "cookie_expire_days": 7
 }
