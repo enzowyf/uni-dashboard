@@ -1,10 +1,6 @@
 # Uni Dashboard
 
-A unified portal for multiple web UIs with password protection. Supports SSH tunneling, public access modes, and dynamic entry management.
-
-## Background
-
-OpenClaw exposes multiple web UIs on different ports (Gateway Dashboard: 18789, Memory Viewer: 18799, etc.). SSH port forwarding only maps one port at a time, making multi-service access inconvenient. Uni Dashboard provides a single entry point for all web UIs with password protection.
+OpenClaw exposes multiple web UIs on different ports (Gateway Dashboard: 18789, Memory Viewer: 18799, etc.). SSH port forwarding only maps one port at a time, making multi-service access inconvenient. Uni Dashboard provides a unified portal for all web UIs with password protection, supporting SSH tunneling, public access modes, and dynamic entry management.
 
 ## Features
 
@@ -166,7 +162,3 @@ ss -tlnp | grep 18780
 ## License
 
 [MIT License](LICENSE)
-
-## Author
-
-Enzo (骁骑)

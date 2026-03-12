@@ -1,10 +1,6 @@
 # Uni Dashboard
 
-统一入口门户 - 将多个 Web UI 整合到单一端口，支持密码保护和动态入口管理。支持 SSH 映射和公网访问两种模式。
-
-## 背景
-
-OpenClaw 的多个 Web UI 分布在不同端口（Gateway Dashboard: 18789, Memory Viewer: 18799 等），SSH 端口转发一次只能映射一个端口，访问不便。Uni Dashboard 提供统一入口，一次映射访问所有服务，并支持密码保护。
+OpenClaw 的多个 Web UI 分布在不同端口（Gateway Dashboard: 18789, Memory Viewer: 18799 等），SSH 端口转发一次只能映射一个端口，访问不便。Uni Dashboard 提供统一入口门户，支持密码保护、SSH 映射、公网访问和动态入口管理。
 
 ## 功能特点
 
@@ -166,7 +162,3 @@ ss -tlnp | grep 18780
 ## 许可证
 
 [MIT 许可证](LICENSE)
-
-## 作者
-
-Enzo（骁骑）
