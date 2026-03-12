@@ -471,9 +471,9 @@ def get_index_page() -> str:
     for key, service in services.items():
         is_default = service.get("is_default", False)
         delete_btn = "" if is_default else f'<button class="delete-btn" onclick="event.preventDefault(); deleteService(\'{key}\')">×</button>'
-        # 通过代理访问
+        # 直接打开后端服务（新标签页）
         cards_html += f"""
-            <a href="/{key}/" class="card" style="border-color: {service['color']}40;"
+            <a href="{service['url']}" target="_blank" class="card" style="border-color: {service['color']}40;"
                onmouseover="this.style.borderColor='{service['color']}'"
                onmouseout="this.style.borderColor='{service['color']}40'">
                 {delete_btn}
@@ -571,9 +571,11 @@ async def proxy_service(service_key: str, request: Request):
     target_url = service["url"]
     
     # 构建目标 URL（移除 service_key 前缀）
-    path = request.url.path[len(f"/{service_key}"):]
-    if not path.startswith("/"):
-        path = "/" + path
+    path = request.url.path
+    if path.startswith(f"/{service_key}"):
+        path = path[len(f"/{service_key}"):]
+    if not path:
+        path = "/"
     if request.url.query:
         path += f"?{request.url.query}"
     url = f"{target_url}{path}"
@@ -614,7 +616,6 @@ async def proxy_service(service_key: str, request: Request):
                 if key.lower() not in excluded_headers:
                     # 重写 Cookie 路径
                     if key.lower() == "set-cookie":
-                        # 添加路径前缀
                         cookie_val = v.decode()
                         if "Path=/" in cookie_val:
                             cookie_val = cookie_val.replace("Path=/", f"Path=/{service_key}/")
