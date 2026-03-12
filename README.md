@@ -89,14 +89,29 @@ Portal Page ◀─────────────────────�
 
 ## Configuration
 
-Edit `server.py` to customize:
+Edit `config.json` to customize:
 
-```python
-PORT = 18780                    # Portal port
-GATEWAY_URL = "http://localhost:18789"   # Gateway Dashboard
-COOKIE_EXPIRE_DAYS = 7          # Cookie validity
-PASSWORD_FILE = "/opt/uni-dashboard/.password"
+```json
+{
+  "port": 18780,
+  "host": "127.0.0.1",
+  "gateway": {
+    "name": "Gateway Dashboard",
+    "url": "http://localhost:18789",
+    "icon": "⚡",
+    "desc": "网关控制面板 - 管理会话、查看日志、配置服务",
+    "color": "#e94560"
+  },
+  "cookie_expire_days": 7
+}
 ```
+
+| Field | Description |
+|-------|-------------|
+| `port` | Portal port (default: 18780) |
+| `host` | Default host for SSH mode (default: 127.0.0.1) |
+| `gateway` | Default entry configuration |
+| `cookie_expire_days` | Session validity in days |
 
 ## Port Planning
 

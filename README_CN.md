@@ -89,14 +89,29 @@ http://公网IP:18780
 
 ## 配置说明
 
-编辑 `server.py` 自定义配置：
+编辑 `config.json` 自定义配置：
 
-```python
-PORT = 18780                    # 门户端口
-GATEWAY_URL = "http://localhost:18789"   # Gateway Dashboard
-COOKIE_EXPIRE_DAYS = 7          # Cookie 有效期
-PASSWORD_FILE = "/opt/uni-dashboard/.password"
+```json
+{
+  "port": 18780,
+  "host": "127.0.0.1",
+  "gateway": {
+    "name": "Gateway Dashboard",
+    "url": "http://localhost:18789",
+    "icon": "⚡",
+    "desc": "网关控制面板 - 管理会话、查看日志、配置服务",
+    "color": "#e94560"
+  },
+  "cookie_expire_days": 7
+}
 ```
+
+| 字段 | 说明 |
+|------|------|
+| `port` | 门户端口（默认：18780） |
+| `host` | SSH 模式默认监听地址（默认：127.0.0.1） |
+| `gateway` | 默认入口配置 |
+| `cookie_expire_days` | Session 有效期（天） |
 
 ## 端口规划
 
