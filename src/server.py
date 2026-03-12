@@ -471,6 +471,7 @@ def get_index_page() -> str:
     for key, service in services.items():
         is_default = service.get("is_default", False)
         delete_btn = "" if is_default else f'<button class="delete-btn" onclick="event.preventDefault(); deleteService(\'{key}\')">×</button>'
+        # 通过代理访问
         cards_html += f"""
             <a href="/{key}/" class="card" style="border-color: {service['color']}40;"
                onmouseover="this.style.borderColor='{service['color']}'"
@@ -566,13 +567,17 @@ async def proxy_service(service_key: str, request: Request):
     services = load_services()
     if service_key not in services:
         raise HTTPException(status_code=404, detail="Service not found")
-    # 移除认证检查，让后端服务自己处理认证
     service = services[service_key]
     target_url = service["url"]
+    
+    # 构建目标 URL（移除 service_key 前缀）
     path = request.url.path[len(f"/{service_key}"):]
+    if not path.startswith("/"):
+        path = "/" + path
     if request.url.query:
         path += f"?{request.url.query}"
     url = f"{target_url}{path}"
+    
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
         try:
             # 透明转发所有 headers（除了 host）
@@ -592,13 +597,30 @@ async def proxy_service(service_key: str, request: Request):
                 content=body
             )
             
+            # 处理重定向
+            if response.status_code in (301, 302, 303, 307, 308):
+                location = response.headers.get("location", "")
+                if location:
+                    # 重写重定向 URL 到代理路径
+                    if location.startswith("/"):
+                        location = f"/{service_key}{location}"
+                    return RedirectResponse(url=location, status_code=response.status_code)
+            
             # 透明转发响应 headers
             excluded_headers = ["content-encoding", "content-length", "transfer-encoding", "connection"]
             response_headers = {}
             for k, v in response.headers.raw:
                 key = k.decode()
                 if key.lower() not in excluded_headers:
-                    response_headers[key] = v.decode()
+                    # 重写 Cookie 路径
+                    if key.lower() == "set-cookie":
+                        # 添加路径前缀
+                        cookie_val = v.decode()
+                        if "Path=/" in cookie_val:
+                            cookie_val = cookie_val.replace("Path=/", f"Path=/{service_key}/")
+                        response_headers[key] = cookie_val
+                    else:
+                        response_headers[key] = v.decode()
             
             return Response(
                 content=response.content,
