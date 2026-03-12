@@ -471,9 +471,9 @@ def get_index_page() -> str:
     for key, service in services.items():
         is_default = service.get("is_default", False)
         delete_btn = "" if is_default else f'<button class="delete-btn" onclick="event.preventDefault(); deleteService(\'{key}\')">×</button>'
-        # 直接打开后端服务（新标签页）
+        # 通过代理访问
         cards_html += f"""
-            <a href="{service['url']}" target="_blank" class="card" style="border-color: {service['color']}40;"
+            <a href="/{key}/" class="card" style="border-color: {service['color']}40;"
                onmouseover="this.style.borderColor='{service['color']}'"
                onmouseout="this.style.borderColor='{service['color']}40'">
                 {delete_btn}
@@ -572,10 +572,12 @@ async def proxy_service(service_key: str, request: Request):
     
     # 构建目标 URL（移除 service_key 前缀）
     path = request.url.path
-    if path.startswith(f"/{service_key}"):
-        path = path[len(f"/{service_key}"):]
-    if not path:
+    if path == f"/{service_key}" or path == f"/{service_key}/":
         path = "/"
+    else:
+        path = path[len(f"/{service_key}"):]
+        if not path:
+            path = "/"
     if request.url.query:
         path += f"?{request.url.query}"
     url = f"{target_url}{path}"
@@ -623,8 +625,24 @@ async def proxy_service(service_key: str, request: Request):
                     else:
                         response_headers[key] = v.decode()
             
+            # 重写 HTML 中的路径（静态资源、API 等）
+            content = response.content
+            if "text/html" in response.headers.get("content-type", ""):
+                html = content.decode("utf-8", errors="ignore")
+                # 重写相对路径
+                import re
+                # href="/xxx" -> href="/{service_key}/xxx"
+                html = re.sub(r'href="/(?!/)"', f'href="/{service_key}/', html)
+                # src="/xxx" -> src="/{service_key}/xxx"
+                html = re.sub(r'src="/(?!/)"', f'src="/{service_key}/', html)
+                # 重写 API 路径
+                html = re.sub(r'fetch\(["\']/', f'fetch(["\'/{service_key}/', html)
+                html = re.sub(r'axios\.get\(["\']/', f'axios.get(["\'/{service_key}/', html)
+                html = re.sub(r'axios\.post\(["\']/', f'axios.post(["\'/{service_key}/', html)
+                content = html.encode("utf-8")
+            
             return Response(
-                content=response.content,
+                content=content,
                 status_code=response.status_code,
                 headers=response_headers
             )
