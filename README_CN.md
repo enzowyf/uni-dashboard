@@ -74,18 +74,40 @@ sudo systemctl start uni-dashboard
 
 ## 访问
 
-### SSH 映射模式
+### SSH 映射模式（默认）
 
+**步骤 1：在本地电脑创建 SSH 隧道**
 ```bash
 ssh -L 18780:localhost:18780 user@server
-# 访问 http://localhost:18780
 ```
+
+**步骤 2：浏览器访问**
+```
+http://localhost:18780
+```
+
+**原理：**
+- `-L 18780:localhost:18780` 将本地 18780 端口转发到服务器的 localhost:18780
+- 服务器监听 `127.0.0.1:18780`（不暴露公网）
+- 流量通过 SSH 隧道加密传输
+
+**技巧：** 添加到 `~/.ssh/config` 简化操作：
+```
+Host myserver
+    HostName 43.139.54.146
+    User root
+    LocalForward 18780 localhost:18780
+```
+之后只需 `ssh myserver` 即可连接并建立隧道。
 
 ### 公网访问模式
 
 ```bash
-# 访问 http://公网IP:18780
+# 浏览器直接访问
+http://公网IP:18780
 ```
+
+**前提：** 云安全组已开放 TCP:18780 端口
 
 ---
 

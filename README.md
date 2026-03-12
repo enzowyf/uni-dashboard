@@ -74,18 +74,40 @@ sudo systemctl start uni-dashboard
 
 ## Access
 
-### SSH Tunneling Mode
+### SSH Tunneling Mode (Default)
 
+**Step 1: Create SSH tunnel on your local machine**
 ```bash
 ssh -L 18780:localhost:18780 user@server
-# Open http://localhost:18780
 ```
+
+**Step 2: Open browser**
+```
+http://localhost:18780
+```
+
+**How it works:**
+- `-L 18780:localhost:18780` forwards local port 18780 to server's localhost:18780
+- Server listens on `127.0.0.1:18780` (not exposed to public)
+- Traffic is encrypted via SSH tunnel
+
+**Tip:** Add to `~/.ssh/config` for convenience:
+```
+Host myserver
+    HostName 43.139.54.146
+    User root
+    LocalForward 18780 localhost:18780
+```
+Then just `ssh myserver` to connect with tunnel.
 
 ### Public Access Mode
 
 ```bash
-# Open http://your-public-ip:18780
+# Open browser directly
+http://your-public-ip:18780
 ```
+
+**Requires:** Cloud security group allows TCP:18780
 
 ---
 
