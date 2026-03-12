@@ -574,17 +574,38 @@ async def proxy_service(service_key: str, request: Request):
     if request.url.query:
         path += f"?{request.url.query}"
     url = f"{target_url}{path}"
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
         try:
-            headers = dict(request.headers)
-            headers.pop("host", None)
+            # 透明转发所有 headers（除了 host）
+            headers = {}
+            for k, v in request.headers.raw:
+                if k.lower() != b"host":
+                    headers[k.decode()] = v.decode()
+            
             if request.headers.get("upgrade", "").lower() == "websocket":
                 return HTMLResponse(content="<h1>WebSocket 连接</h1><p>请直接访问后端服务。</p>", status_code=200)
+            
             body = await request.body()
-            response = await client.request(method=request.method, url=url, headers=headers, content=body, follow_redirects=False)
-            excluded_headers = ["content-encoding", "content-length", "transfer-encoding"]
-            response_headers = [(k, v) for k, v in response.headers.items() if k.lower() not in excluded_headers]
-            return Response(content=response.content, status_code=response.status_code, headers=dict(response_headers))
+            response = await client.request(
+                method=request.method,
+                url=url,
+                headers=headers,
+                content=body
+            )
+            
+            # 透明转发响应 headers
+            excluded_headers = ["content-encoding", "content-length", "transfer-encoding", "connection"]
+            response_headers = []
+            for k, v in response.headers.raw:
+                key = k.decode()
+                if key.lower() not in excluded_headers:
+                    response_headers.append((key, v.decode()))
+            
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=response_headers
+            )
         except httpx.ConnectError:
             return HTMLResponse(content=f"<h1>服务不可用</h1><p>无法连接到 {service['name']}</p><p>目标：{target_url}</p>", status_code=502)
         except Exception as e:
