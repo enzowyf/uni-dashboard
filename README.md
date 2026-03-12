@@ -1,12 +1,13 @@
 # Uni Dashboard
 
-A unified portal for multiple web UIs with password protection. Supports SSH tunneling and public access modes.
+A unified portal for multiple web UIs with password protection. Supports SSH tunneling, public access modes, and dynamic entry management.
 
 ## Features
 
 - 🚀 **Single Port Access** - One port for all web UIs
 - 🔐 **Password Protection** - First-time setup, subsequent verification
 - 🌐 **Dual Mode Support** - SSH tunneling (default) or public access
+- ➕ **Dynamic Entries** - Add/remove service entries via UI
 - 🎨 **Modern UI** - Clean interface with service cards
 - 🍪 **Session Persistence** - 7-day cookie-based authentication
 - ⚡ **Lightweight** - FastAPI-based, minimal dependencies
@@ -49,6 +50,26 @@ http://your-public-ip:18780
 
 **Note:** Both modes require password verification after opening the page.
 
+## Dynamic Entry Management
+
+### Default Entry
+- **Gateway Dashboard** (port 18789) - Pre-configured, cannot be deleted
+
+### Add New Entry
+1. Click "➕ Add Entry" button on the portal page
+2. Enter entry name (e.g., "Grafana")
+3. Enter port number (e.g., 3000)
+4. Enter description (optional)
+5. Click "Add" to save
+
+### Delete Entry
+- Hover over non-default entries to reveal the × button
+- Click × to delete (default entry cannot be deleted)
+
+### Configuration Storage
+- Entries are stored in `/opt/uni-dashboard/data/services.json`
+- Survives service restarts
+
 ## Page Flow
 
 ```
@@ -61,8 +82,9 @@ Set Password ──────────────────────�
    ▼                                        ▼
 Portal Page ◀───────────────────────── Portal Page
    │
-   ├─→ Gateway Dashboard
-   └─→ Memory Viewer
+   ├─→ Gateway Dashboard (default)
+   ├─→ Memory Viewer
+   └─→ Custom entries...
 ```
 
 ## Configuration
@@ -72,27 +94,8 @@ Edit `server.py` to customize:
 ```python
 PORT = 18780                    # Portal port
 GATEWAY_URL = "http://localhost:18789"   # Gateway Dashboard
-MEMORY_URL = "http://localhost:18799"    # Memory Viewer
 COOKIE_EXPIRE_DAYS = 7          # Cookie validity
 PASSWORD_FILE = "/opt/uni-dashboard/.password"
-```
-
-## Add More Services
-
-Edit `SERVICES` dict in `server.py`:
-
-```python
-SERVICES = {
-    "gateway": {...},
-    "memory": {...},
-    "grafana": {
-        "name": "Grafana",
-        "url": "http://localhost:3000",
-        "icon": "📊",
-        "desc": "Monitoring Dashboard",
-        "color": "#f46800"
-    }
-}
 ```
 
 ## Port Planning
@@ -102,6 +105,7 @@ SERVICES = {
 | Uni Dashboard | 18780 |
 | Gateway Dashboard | 18789 |
 | Memory Viewer | 18799 |
+| Custom entries | User-defined |
 
 ## Troubleshooting
 
@@ -117,6 +121,9 @@ ss -tlnp | grep 18780
 
 # Restart service
 sudo systemctl restart uni-dashboard
+
+# View saved entries
+cat /opt/uni-dashboard/data/services.json
 ```
 
 ## Tech Stack
@@ -124,6 +131,20 @@ sudo systemctl restart uni-dashboard
 - **Backend**: FastAPI + uvicorn
 - **HTTP Client**: httpx
 - **Authentication**: SHA256 hashing + UUID tokens
+- **Storage**: JSON files (no database required)
+
+## Changelog
+
+### v1.1.0
+- ➕ Dynamic entry management (add/remove via UI)
+- 🔒 Gateway Dashboard as default non-deletable entry
+- 💾 Persistent configuration storage
+
+### v1.0.0
+- Initial release
+- SSH tunneling and public access modes
+- Password protection
+- Gateway Dashboard and Memory Viewer entries
 
 ## License
 
