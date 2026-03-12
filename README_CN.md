@@ -95,13 +95,16 @@ http://公网IP:18780
 {
   "port": 18780,
   "host": "127.0.0.1",
-  "gateway": {
-    "name": "Gateway Dashboard",
-    "url": "http://localhost:18789",
-    "icon": "⚡",
-    "desc": "网关控制面板 - 管理会话、查看日志、配置服务"
-  },
-  "cookie_expire_days": 7
+  "cookie_expire_days": 7,
+  "entries": [
+    {
+      "key": "gateway",
+      "name": "Gateway Dashboard",
+      "url": "http://localhost:18789",
+      "desc": "网关控制面板 - 管理会话、查看日志、配置服务",
+      "is_default": true
+    }
+  ]
 }
 ```
 
@@ -109,8 +112,13 @@ http://公网IP:18780
 |------|------|
 | `port` | 门户端口（默认：18780） |
 | `host` | SSH 模式默认监听地址（默认：127.0.0.1） |
-| `gateway` | 默认入口配置 |
 | `cookie_expire_days` | Session 有效期（天） |
+| `entries` | 入口列表 |
+| `entries[].key` | 入口唯一标识 |
+| `entries[].name` | 显示名称 |
+| `entries[].url` | 目标地址 |
+| `entries[].desc` | 描述 |
+| `entries[].is_default` | 是否为默认入口（不可删除） |
 
 ## 端口规划
 

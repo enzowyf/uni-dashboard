@@ -95,13 +95,16 @@ Edit `config.json` to customize:
 {
   "port": 18780,
   "host": "127.0.0.1",
-  "gateway": {
-    "name": "Gateway Dashboard",
-    "url": "http://localhost:18789",
-    "icon": "⚡",
-    "desc": "网关控制面板 - 管理会话、查看日志、配置服务"
-  },
-  "cookie_expire_days": 7
+  "cookie_expire_days": 7,
+  "entries": [
+    {
+      "key": "gateway",
+      "name": "Gateway Dashboard",
+      "url": "http://localhost:18789",
+      "desc": "网关控制面板 - 管理会话、查看日志、配置服务",
+      "is_default": true
+    }
+  ]
 }
 ```
 
@@ -109,8 +112,13 @@ Edit `config.json` to customize:
 |-------|-------------|
 | `port` | Portal port (default: 18780) |
 | `host` | Default host for SSH mode (default: 127.0.0.1) |
-| `gateway` | Default entry configuration |
 | `cookie_expire_days` | Session validity in days |
+| `entries` | List of service entries |
+| `entries[].key` | Unique identifier for the entry |
+| `entries[].name` | Display name |
+| `entries[].url` | Target URL |
+| `entries[].desc` | Description |
+| `entries[].is_default` | If true, cannot be deleted |
 
 ## Port Planning
 

@@ -68,60 +68,72 @@ COOKIE_NAME = "uni_dashboard_auth"
 app = FastAPI(title="Uni Dashboard")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# === 默认服务 ===
-# 预定义颜色
+# === 默认图标和颜色 ===
+ICONS = {
+    "gateway": "⚡",
+    "default": "🔗"
+}
+
 COLORS = {
     "gateway": "#e94560",
     "default": "#4ecdc4"
 }
 
-def get_default_services() -> Dict[str, Any]:
-    """获取默认服务配置"""
-    gateway_config = CONFIG.get("gateway", {})
-    return {
-        "gateway": {
-            "name": gateway_config.get("name", "Gateway Dashboard"),
-            "url": gateway_config.get("url", "http://localhost:18789"),
-            "icon": gateway_config.get("icon", "⚡"),
-            "desc": gateway_config.get("desc", "网关控制面板 - 管理会话、查看日志、配置服务"),
-            "color": COLORS["gateway"],
-            "is_default": True
-        }
-    }
-
 # === 服务管理 ===
 def load_services() -> Dict[str, Any]:
-    """加载服务配置"""
+    """加载服务配置（从 config.json 的 entries + 动态添加的）"""
+    # 从配置文件加载初始入口
+    config_entries = CONFIG.get("entries", [])
+    services = {}
+    
+    for entry in config_entries:
+        key = entry.get("key", "unknown")
+        services[key] = {
+            "name": entry.get("name", key),
+            "url": entry.get("url", f"http://localhost:18789"),
+            "desc": entry.get("desc", ""),
+            "icon": ICONS.get(key, ICONS["default"]),
+            "color": COLORS.get(key, COLORS["default"]),
+            "is_default": entry.get("is_default", False)
+        }
+    
+    # 加载动态添加的入口
     if SERVICES_FILE.exists():
         try:
-            services = json.loads(SERVICES_FILE.read_text())
-            # 确保默认服务存在
-            default_services = get_default_services()
-            if "gateway" not in services:
-                services["gateway"] = default_services["gateway"]
-            return services
+            dynamic_services = json.loads(SERVICES_FILE.read_text())
+            for key, service in dynamic_services.items():
+                if key not in services:  # 不覆盖配置文件的
+                    services[key] = service
         except:
             pass
-    return get_default_services()
+    
+    return services
 
-def save_services(services: Dict[str, Any]):
-    """保存服务配置"""
-    SERVICES_FILE.write_text(json.dumps(services, indent=2, ensure_ascii=False))
+def save_dynamic_service(key: str, service: Dict[str, Any]):
+    """保存动态添加的服务"""
+    dynamic_services = {}
+    if SERVICES_FILE.exists():
+        try:
+            dynamic_services = json.loads(SERVICES_FILE.read_text())
+        except:
+            pass
+    dynamic_services[key] = service
+    SERVICES_FILE.write_text(json.dumps(dynamic_services, indent=2, ensure_ascii=False))
 
-def add_service(key: str, name: str, port: int, icon: str = "🔗", desc: str = "") -> bool:
+def add_service(key: str, name: str, port: int, desc: str = "") -> bool:
     """添加新服务"""
     services = load_services()
     if key in services:
         return False
-    services[key] = {
+    service = {
         "name": name,
         "url": f"http://localhost:{port}",
-        "icon": icon,
+        "icon": ICONS["default"],
         "desc": desc or f"{name} - 端口 {port}",
         "color": COLORS["default"],
         "is_default": False
     }
-    save_services(services)
+    save_dynamic_service(key, service)
     return True
 
 def remove_service(key: str) -> bool:
@@ -131,8 +143,15 @@ def remove_service(key: str) -> bool:
         return False
     if services[key].get("is_default"):
         return False
-    del services[key]
-    save_services(services)
+    # 从动态服务文件中删除
+    if SERVICES_FILE.exists():
+        try:
+            dynamic_services = json.loads(SERVICES_FILE.read_text())
+            if key in dynamic_services:
+                del dynamic_services[key]
+                SERVICES_FILE.write_text(json.dumps(dynamic_services, indent=2, ensure_ascii=False))
+        except:
+            pass
     return True
 
 # === 密码管理 ===
