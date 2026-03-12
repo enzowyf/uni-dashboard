@@ -2,6 +2,24 @@
 
 A unified portal for multiple web UIs with password protection. Supports SSH tunneling, public access modes, and dynamic entry management.
 
+## Background
+
+When deploying OpenClaw on a remote server, multiple web UIs are exposed on different ports:
+- **Gateway Dashboard** (port 18789) - Session management, logs, configuration
+- **Memory Viewer** (port 18799) - Memory search and management
+- Other services...
+
+**Problems:**
+- SSH port forwarding only maps one port at a time
+- Accessing multiple services requires multiple SSH tunnels
+- Direct public exposure lacks authentication
+
+**Solution:** Uni Dashboard provides a single entry point that:
+- Maps one port to access all web UIs
+- Supports SSH tunneling mode (secure) and public access mode (convenient)
+- Adds password protection for security
+- Allows dynamic entry management without code changes
+
 ## Features
 
 - 🚀 **Single Port Access** - One port for all web UIs
