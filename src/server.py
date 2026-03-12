@@ -595,11 +595,11 @@ async def proxy_service(service_key: str, request: Request):
             
             # 透明转发响应 headers
             excluded_headers = ["content-encoding", "content-length", "transfer-encoding", "connection"]
-            response_headers = []
+            response_headers = {}
             for k, v in response.headers.raw:
                 key = k.decode()
                 if key.lower() not in excluded_headers:
-                    response_headers.append((key, v.decode()))
+                    response_headers[key] = v.decode()
             
             return Response(
                 content=response.content,
