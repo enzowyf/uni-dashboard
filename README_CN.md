@@ -135,16 +135,9 @@ ssh -L 18780:localhost:18780 user@server
 
 ## 故障排查
 
-### 常见问题
+### 环境问题
 
-**1. CSS 模板错误 (KeyError)**
-```
-KeyError: ' margin'
-```
-原因：HTML 模板中的 CSS 花括号未转义。
-解决：`server.py` 中 `<style>` 块内的 `{ }` 必须转义为 `{{ }}`。
-
-**2. 缺少依赖: python-multipart**
+**1. 缺少依赖: python-multipart**
 ```
 RuntimeError: Form data requires "python-multipart" to be installed.
 ```
@@ -153,13 +146,39 @@ RuntimeError: Form data requires "python-multipart" to be installed.
 pip install python-multipart
 ```
 
-**3. 服务无法启动**
+**2. 端口被占用**
+```
+OSError: [Errno 98] Address already in use
+```
+解决：
+```bash
+# 查看端口占用
+netstat -tlnp | grep 18780
+# 终止进程或修改 config.json 中的端口
+```
+
+**3. 权限不足**
+```
+PermissionError: [Errno 13] Permission denied: '/opt/uni-dashboard/data'
+```
+解决：
+```bash
+sudo mkdir -p /opt/uni-dashboard/data
+sudo chown $USER:$USER /opt/uni-dashboard/data
+```
+
+### 配置问题
+
+**4. config.json 格式错误**
+```bash
+# 验证 JSON 语法
+python3 -c "import json; json.load(open('config.json'))"
+```
+
+**5. 服务无法启动**
 ```bash
 # 查看日志
 journalctl -u uni-dashboard -n 50
-
-# 检查端口
-netstat -tlnp | grep 18780
 
 # 重启服务
 sudo systemctl restart uni-dashboard

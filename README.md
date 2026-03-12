@@ -135,15 +135,9 @@ Edit `config.json`:
 
 ## Troubleshooting
 
-### Common Issues
+### Environment Issues
 
-**1. CSS template error (KeyError)**
-```
-KeyError: ' margin'
-```
-Fix: CSS braces in HTML templates must be escaped as `{{` and `}}`. Check `server.py` for any unescaped `{ }` in `<style>` blocks.
-
-**2. Missing dependency: python-multipart**
+**1. Missing dependency: python-multipart**
 ```
 RuntimeError: Form data requires "python-multipart" to be installed.
 ```
@@ -152,13 +146,39 @@ Fix:
 pip install python-multipart
 ```
 
-**3. Service won't start**
+**2. Port already in use**
+```
+OSError: [Errno 98] Address already in use
+```
+Fix: 
+```bash
+# Check what's using the port
+netstat -tlnp | grep 18780
+# Kill process or change port in config.json
+```
+
+**3. Permission denied**
+```
+PermissionError: [Errno 13] Permission denied: '/opt/uni-dashboard/data'
+```
+Fix:
+```bash
+sudo mkdir -p /opt/uni-dashboard/data
+sudo chown $USER:$USER /opt/uni-dashboard/data
+```
+
+### Configuration Issues
+
+**4. Invalid config.json**
+```bash
+# Validate JSON syntax
+python3 -c "import json; json.load(open('config.json'))"
+```
+
+**5. Service won't start**
 ```bash
 # Check logs
 journalctl -u uni-dashboard -n 50
-
-# Check port
-netstat -tlnp | grep 18780
 
 # Restart service
 sudo systemctl restart uni-dashboard
