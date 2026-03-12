@@ -133,22 +133,6 @@ Edit `config.json`:
 
 ---
 
-## Project Structure
-
-```
-uni-dashboard/
-├── src/
-│   └── server.py        # Main application
-├── config.json          # Configuration
-├── requirements.txt     # Dependencies
-├── deploy.sh            # Deployment script
-├── uni-dashboard.service
-├── LICENSE
-└── README.md
-```
-
----
-
 ## Troubleshooting
 
 ```bash

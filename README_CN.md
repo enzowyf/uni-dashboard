@@ -133,22 +133,6 @@ ssh -L 18780:localhost:18780 user@server
 
 ---
 
-## 项目结构
-
-```
-uni-dashboard/
-├── src/
-│   └── server.py        # 主程序
-├── config.json          # 配置文件
-├── requirements.txt     # 依赖
-├── deploy.sh            # 部署脚本
-├── uni-dashboard.service
-├── LICENSE
-└── README.md
-```
-
----
-
 ## 故障排查
 
 ```bash
