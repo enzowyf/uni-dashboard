@@ -32,7 +32,8 @@ mkdir -p $INSTALL_DIR/data
 # 复制文件
 echo "📋 复制文件..."
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cp $SCRIPT_DIR/server.py $INSTALL_DIR/
+cp $SCRIPT_DIR/src/server.py $INSTALL_DIR/
+cp $SCRIPT_DIR/config.json $INSTALL_DIR/
 cp $SCRIPT_DIR/requirements.txt $INSTALL_DIR/
 
 # 设置权限
