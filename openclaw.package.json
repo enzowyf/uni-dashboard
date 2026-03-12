@@ -3,14 +3,7 @@
   "displayName": "Uni Dashboard",
   "version": "1.0.0",
   "type": "experience",
-  "description": "统一入口门户 - 将 Gateway Dashboard、Memory Viewer 等多个 Web UI 整合到单一端口，支持 SSH 映射和公网访问两种模式",
+  "description": "A unified portal for multiple web UIs with password protection. Supports SSH tunneling, public access modes, and dynamic entry management.",
   "tags": ["portal", "auth", "fastapi", "dashboard", "reverse-proxy", "ssh", "openclaw"],
-  "author": "enzo",
-  "license": "MIT",
-  "files": [
-    "README.md",
-    "server.py",
-    "requirements.txt",
-    "deploy.sh"
-  ]
+  "license": "MIT"
 }
