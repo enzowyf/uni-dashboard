@@ -135,10 +135,34 @@ ssh -L 18780:localhost:18780 user@server
 
 ## 故障排查
 
+### 常见问题
+
+**1. CSS 模板错误 (KeyError)**
+```
+KeyError: ' margin'
+```
+原因：HTML 模板中的 CSS 花括号未转义。
+解决：`server.py` 中 `<style>` 块内的 `{ }` 必须转义为 `{{ }}`。
+
+**2. 缺少依赖: python-multipart**
+```
+RuntimeError: Form data requires "python-multipart" to be installed.
+```
+解决：
 ```bash
-systemctl status uni-dashboard
-journalctl -u uni-dashboard -f
-ss -tlnp | grep 18780
+pip install python-multipart
+```
+
+**3. 服务无法启动**
+```bash
+# 查看日志
+journalctl -u uni-dashboard -n 50
+
+# 检查端口
+netstat -tlnp | grep 18780
+
+# 重启服务
+sudo systemctl restart uni-dashboard
 ```
 
 ---

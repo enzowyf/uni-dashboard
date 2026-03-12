@@ -135,10 +135,33 @@ Edit `config.json`:
 
 ## Troubleshooting
 
+### Common Issues
+
+**1. CSS template error (KeyError)**
+```
+KeyError: ' margin'
+```
+Fix: CSS braces in HTML templates must be escaped as `{{` and `}}`. Check `server.py` for any unescaped `{ }` in `<style>` blocks.
+
+**2. Missing dependency: python-multipart**
+```
+RuntimeError: Form data requires "python-multipart" to be installed.
+```
+Fix: 
 ```bash
-systemctl status uni-dashboard
-journalctl -u uni-dashboard -f
-ss -tlnp | grep 18780
+pip install python-multipart
+```
+
+**3. Service won't start**
+```bash
+# Check logs
+journalctl -u uni-dashboard -n 50
+
+# Check port
+netstat -tlnp | grep 18780
+
+# Restart service
+sudo systemctl restart uni-dashboard
 ```
 
 ---
