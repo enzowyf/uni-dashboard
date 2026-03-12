@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 """
 Uni Dashboard - 统一入口门户
-FastAPI 反向代理，支持多 Web UI 整合 + 密码保护
+FastAPI 反向代理，支持多 Web UI 整合 + 密码保护 + 动态添加入口
 
 两种模式：
   SSH 映射模式（默认）：
     python server.py
     # 监听 127.0.0.1:18780，需要 SSH 端口转发访问
-    # 页面仍需密码验证
 
   公网访问模式：
     python server.py --public
     # 监听 0.0.0.0:18780，直接公网访问
-    # 页面需要密码验证
 
 注意：两种模式打开页面后流程一致，都需要输入密码。
 """
@@ -25,11 +23,11 @@ import argparse
 import secrets
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict, Any
 
 try:
     from fastapi import FastAPI, Request, Response, HTTPException, Form
-    from fastapi.responses import HTMLResponse, RedirectResponse
+    from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
     import httpx
     from uvicorn import run as uvicorn_run
 except ImportError:
@@ -44,28 +42,64 @@ COOKIE_NAME = "uni_dashboard_auth"
 COOKIE_EXPIRE_DAYS = 7
 PASSWORD_FILE = Path("/opt/uni-dashboard/.password")
 DATA_DIR = Path("/opt/uni-dashboard/data")
+SERVICES_FILE = DATA_DIR / "services.json"
 
-# 服务配置
-SERVICES = {
+# === 初始化 ===
+app = FastAPI(title="Uni Dashboard")
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# 默认服务配置
+DEFAULT_SERVICES = {
     "gateway": {
         "name": "Gateway Dashboard",
         "url": GATEWAY_URL,
         "icon": "⚡",
         "desc": "网关控制面板 - 管理会话、查看日志、配置服务",
-        "color": "#e94560"
-    },
-    "memory": {
-        "name": "Memory Viewer",
-        "url": MEMORY_URL,
-        "icon": "🧠",
-        "desc": "记忆管理系统 - 查看、搜索、管理对话记忆",
-        "color": "#4ecdc4"
+        "color": "#e94560",
+        "is_default": True
     }
 }
 
-# === 初始化 ===
-app = FastAPI(title="Uni Dashboard")
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+# === 服务管理 ===
+def load_services() -> Dict[str, Any]:
+    """加载服务配置"""
+    if SERVICES_FILE.exists():
+        try:
+            return json.loads(SERVICES_FILE.read_text())
+        except:
+            pass
+    return DEFAULT_SERVICES.copy()
+
+def save_services(services: Dict[str, Any]):
+    """保存服务配置"""
+    SERVICES_FILE.write_text(json.dumps(services, indent=2, ensure_ascii=False))
+
+def add_service(key: str, name: str, port: int, icon: str = "🔗", desc: str = "", color: str = "#4ecdc4") -> bool:
+    """添加新服务"""
+    services = load_services()
+    if key in services:
+        return False
+    services[key] = {
+        "name": name,
+        "url": f"http://localhost:{port}",
+        "icon": icon,
+        "desc": desc or f"{name} - 端口 {port}",
+        "color": color,
+        "is_default": False
+    }
+    save_services(services)
+    return True
+
+def remove_service(key: str) -> bool:
+    """删除服务"""
+    services = load_services()
+    if key not in services:
+        return False
+    if services[key].get("is_default"):
+        return False  # 不能删除默认服务
+    del services[key]
+    save_services(services)
+    return True
 
 # === 密码管理 ===
 def hash_password(password: str) -> str:
@@ -276,36 +310,38 @@ INDEX_PAGE = """
     <title>Uni Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
+        body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        .container {
+        }}
+        .container {{
             text-align: center;
             padding: 40px;
-        }
-        h1 {
+            width: 100%;
+            max-width: 1200px;
+        }}
+        h1 {{
             color: #e94560;
             font-size: 2.5em;
             margin-bottom: 10px;
             text-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
-        }
-        .subtitle {
+        }}
+        .subtitle {{
             color: #a0a0a0;
             margin-bottom: 50px;
             font-size: 1.1em;
-        }
-        .cards {
+        }}
+        .cards {{
             display: flex;
             gap: 30px;
             justify-content: center;
             flex-wrap: wrap;
-        }
-        .card {
+        }}
+        .card {{
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 16px;
@@ -314,34 +350,80 @@ INDEX_PAGE = """
             text-decoration: none;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
-        }
-        .card:hover {
+            position: relative;
+        }}
+        .card:hover {{
             transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-        .card-icon {
+        }}
+        .card-icon {{
             font-size: 48px;
             margin-bottom: 20px;
-        }
-        .card h2 {
+        }}
+        .card h2 {{
             color: #fff;
             font-size: 1.5em;
             margin-bottom: 10px;
-        }
-        .card p {
+        }}
+        .card p {{
             color: #888;
             font-size: 0.9em;
             line-height: 1.5;
-        }
-        .footer {
+        }}
+        .card .delete-btn {{
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255,0,0,0.3);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            display: none;
+            transition: background 0.2s;
+        }}
+        .card:hover .delete-btn {{
+            display: block;
+        }}
+        .card .delete-btn:hover {{
+            background: rgba(255,0,0,0.6);
+        }}
+        .card.add-card {{
+            border: 2px dashed rgba(255,255,255,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }}
+        .card.add-card:hover {{
+            border-color: #e94560;
+        }}
+        .add-icon {{
+            font-size: 48px;
+            color: #e94560;
+            margin-bottom: 10px;
+        }}
+        .add-text {{
+            color: #888;
+            font-size: 1em;
+        }}
+        .footer {{
             margin-top: 50px;
             color: #555;
             font-size: 0.85em;
-        }
-        .logout {
+        }}
+        .header-actions {{
             position: fixed;
             top: 20px;
             right: 20px;
+            display: flex;
+            gap: 10px;
+        }}
+        .header-btn {{
             padding: 8px 16px;
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.2);
@@ -350,37 +432,185 @@ INDEX_PAGE = """
             text-decoration: none;
             font-size: 0.9em;
             transition: all 0.3s;
-        }
-        .logout:hover {
+            cursor: pointer;
+        }}
+        .header-btn:hover {{
             background: rgba(255,255,255,0.2);
             color: #fff;
-        }
+        }}
+        /* Modal */
+        .modal {{
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }}
+        .modal.active {{
+            display: flex;
+        }}
+        .modal-content {{
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            width: 400px;
+            max-width: 90%;
+        }}
+        .modal h2 {{
+            color: #fff;
+            margin-bottom: 20px;
+        }}
+        .modal input {{
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }}
+        .modal input:focus {{
+            outline: none;
+            border-color: #e94560;
+        }}
+        .modal-actions {{
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }}
+        .modal-btn {{
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+        }}
+        .modal-btn.cancel {{
+            background: rgba(255,255,255,0.1);
+            color: #aaa;
+        }}
+        .modal-btn.confirm {{
+            background: linear-gradient(135deg, #e94560, #c23a51);
+            color: #fff;
+        }}
     </style>
 </head>
 <body>
-    <a href="/logout" class="logout">退出</a>
+    <div class="header-actions">
+        <button class="header-btn" onclick="openAddModal()">➕ 添加入口</button>
+        <a href="/logout" class="header-btn">退出</a>
+    </div>
 
     <div class="container">
         <h1>🛡️ Uni Dashboard</h1>
         <p class="subtitle">选择要访问的服务</p>
 
-        <div class="cards">
+        <div class="cards" id="cards-container">
             {cards}
+            <div class="card add-card" onclick="openAddModal()">
+                <div class="add-icon">➕</div>
+                <div class="add-text">添加新入口</div>
+            </div>
         </div>
 
         <p class="footer">Powered by OpenClaw</p>
     </div>
+
+    <!-- Add Modal -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <h2>添加新入口</h2>
+            <input type="text" id="serviceName" placeholder="入口名称（如：Grafana）">
+            <input type="number" id="servicePort" placeholder="端口号（如：3000）">
+            <input type="text" id="serviceDesc" placeholder="描述（可选）">
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeAddModal()">取消</button>
+                <button class="modal-btn confirm" onclick="addService()">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openAddModal() {{
+            document.getElementById('addModal').classList.add('active');
+        }}
+
+        function closeAddModal() {{
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('serviceName').value = '';
+            document.getElementById('servicePort').value = '';
+            document.getElementById('serviceDesc').value = '';
+        }}
+
+        async function addService() {{
+            const name = document.getElementById('serviceName').value.trim();
+            const port = document.getElementById('servicePort').value;
+            const desc = document.getElementById('serviceDesc').value.trim();
+
+            if (!name || !port) {{
+                alert('请填写名称和端口号');
+                return;
+            }}
+
+            try {{
+                const response = await fetch('/api/services', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ name, port: parseInt(port), desc }})
+                }});
+
+                if (response.ok) {{
+                    window.location.reload();
+                }} else {{
+                    const data = await response.json();
+                    alert(data.message || '添加失败');
+                }}
+            }} catch (err) {{
+                alert('添加失败: ' + err.message);
+            }}
+        }}
+
+        async function deleteService(key) {{
+            if (!confirm('确定要删除这个入口吗？')) return;
+
+            try {{
+                const response = await fetch('/api/services/' + key, {{
+                    method: 'DELETE'
+                }});
+
+                if (response.ok) {{
+                    window.location.reload();
+                }} else {{
+                    alert('删除失败');
+                }}
+            }} catch (err) {{
+                alert('删除失败: ' + err.message);
+            }}
+        }}
+    </script>
 </body>
 </html>
 """
 
 def get_index_page() -> str:
+    services = load_services()
     cards_html = ""
-    for key, service in SERVICES.items():
+    for key, service in services.items():
+        is_default = service.get("is_default", False)
+        delete_btn = "" if is_default else f'<button class="delete-btn" onclick="event.preventDefault(); deleteService(\'{key}\')">×</button>'
         cards_html += f"""
             <a href="/{key}/" class="card" style="border-color: {service['color']}40;"
                onmouseover="this.style.borderColor='{service['color']}'"
                onmouseout="this.style.borderColor='{service['color']}40'">
+                {delete_btn}
                 <div class="card-icon">{service['icon']}</div>
                 <h2>{service['name']}</h2>
                 <p>{service['desc']}</p>
@@ -426,7 +656,6 @@ async def auth(
     confirm_password: Optional[str] = Form(default=None)
 ):
     """认证处理"""
-    # 首次设置密码
     if not password_exists():
         if not confirm_password or password != confirm_password:
             return HTMLResponse(content=get_login_page(error="两次密码不一致", is_setup=True), status_code=400)
@@ -439,7 +668,6 @@ async def auth(
         response.set_cookie(COOKIE_NAME, token, max_age=COOKIE_EXPIRE_DAYS * 24 * 60 * 60)
         return response
 
-    # 验证密码
     if verify_password(password):
         token = create_auth_token()
         save_auth_token(token)
@@ -456,31 +684,63 @@ async def logout():
     response.delete_cookie(COOKIE_NAME)
     return response
 
+# === API 路由 ===
+@app.post("/api/services")
+async def api_add_service(request: Request):
+    """添加新服务"""
+    if not get_current_user(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    data = await request.json()
+    name = data.get("name", "").strip()
+    port = data.get("port")
+    desc = data.get("desc", "").strip()
+
+    if not name or not port:
+        raise HTTPException(status_code=400, detail="Name and port are required")
+
+    # 生成 key
+    key = name.lower().replace(" ", "-").replace("/", "-")
+
+    if add_service(key, name, port, desc=desc):
+        return {"success": True, "key": key}
+    else:
+        raise HTTPException(status_code=400, detail="Service already exists")
+
+@app.delete("/api/services/{key}")
+async def api_remove_service(key: str, request: Request):
+    """删除服务"""
+    if not get_current_user(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if remove_service(key):
+        return {"success": True}
+    else:
+        raise HTTPException(status_code=400, detail="Cannot delete this service")
+
 # === 代理路由 ===
 async def proxy_service(service_key: str, request: Request):
     """代理到指定服务"""
-    if service_key not in SERVICES:
+    services = load_services()
+    if service_key not in services:
         raise HTTPException(status_code=404, detail="Service not found")
 
     if not get_current_user(request):
         raise HTTPException(status_code=302, headers={"Location": "/login"})
 
-    service = SERVICES[service_key]
+    service = services[service_key]
     target_url = service["url"]
 
-    # 构建目标 URL
     path = request.url.path[len(f"/{service_key}"):]
     if request.url.query:
         path += f"?{request.url.query}"
     url = f"{target_url}{path}"
 
-    # 转发请求
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             headers = dict(request.headers)
             headers.pop("host", None)
 
-            # 处理 WebSocket 升级
             if request.headers.get("upgrade", "").lower() == "websocket":
                 return HTMLResponse(
                     content="<h1>WebSocket 连接</h1><p>请直接访问后端服务，或使用 SSH 端口转发。</p>",
@@ -518,18 +778,16 @@ async def proxy_service(service_key: str, request: Request):
                 status_code=500
             )
 
-# 动态注册服务路由
-for service_key in SERVICES:
-    app.add_route(
-        f"/{service_key}/{{path:path}}",
-        lambda r, sk=service_key: proxy_service(sk, r),
-        methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
-    )
-    app.add_route(
-        f"/{service_key}/",
-        lambda r, sk=service_key: proxy_service(sk, r),
-        methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
-    )
+# 动态代理路由处理
+@app.route("/{service_key}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+async def dynamic_proxy(request: Request):
+    service_key = request.path_params.get("service_key")
+    return await proxy_service(service_key, request)
+
+@app.route("/{service_key}/", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+async def dynamic_proxy_root(request: Request):
+    service_key = request.path_params.get("service_key")
+    return await proxy_service(service_key, request)
 
 # === 启动 ===
 if __name__ == "__main__":
@@ -542,17 +800,15 @@ if __name__ == "__main__":
 
     print(f"""
 ╔══════════════════════════════════════════════╗
-║          🛡️  Uni Dashboard v1.0.0           ║
+║          🛡️  Uni Dashboard v1.1.0           ║
 ╠══════════════════════════════════════════════╣
 ║  监听: {host}:{args.port}
 ║  模式: {"公网访问" if args.public else "SSH 映射"}
 ║  认证: 密码保护（两种模式一致）
+║  功能: 支持动态添加入口
 ╠══════════════════════════════════════════════╣
 ║  访问方式:
 ║  {"http://公网IP:" + str(args.port) if args.public else "ssh -L " + str(args.port) + ":localhost:" + str(args.port) + " user@server"}
-║  {"然后浏览器访问: http://公网IP:" + str(args.port) if args.public else "然后浏览器访问: http://localhost:" + str(args.port)}
-╠══════════════════════════════════════════════╣
-║  ⚠️  两种模式打开页面后都需要输入密码
 ╚══════════════════════════════════════════════╝
     """)
 
