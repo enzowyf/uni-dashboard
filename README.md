@@ -12,16 +12,83 @@ A unified portal for multiple web UIs with password protection. Supports SSH tun
 - 🍪 **Session Persistence** - 7-day cookie-based authentication
 - ⚡ **Lightweight** - FastAPI-based, minimal dependencies
 
-## Quick Start
+---
 
-### SSH Tunneling Mode (Default, Recommended)
+## Installation
+
+### Requirements
+
+- Python 3.9+
+- pip
+
+### Install Dependencies
 
 ```bash
-# Clone and deploy
+pip install fastapi uvicorn httpx
+```
+
+### Download
+
+```bash
 git clone https://github.com/enzowyf/uni-dashboard.git
 cd uni-dashboard
+```
+
+---
+
+## Deployment
+
+### Option 1: Quick Deploy (Recommended)
+
+Use the deployment script:
+
+```bash
+# SSH tunneling mode (default)
 sudo bash deploy.sh
 
+# Public access mode
+sudo bash deploy.sh public
+```
+
+### Option 2: Manual Deploy
+
+Run directly without systemd:
+
+```bash
+# SSH tunneling mode
+python server.py
+
+# Public access mode
+python server.py --public
+
+# Custom port
+python server.py --port 8080
+```
+
+### Option 3: Systemd Service
+
+Install as a system service:
+
+```bash
+# Copy service file
+sudo cp uni-dashboard.service /etc/systemd/system/
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable uni-dashboard
+sudo systemctl start uni-dashboard
+
+# Check status
+sudo systemctl status uni-dashboard
+```
+
+---
+
+## Access
+
+### SSH Tunneling Mode
+
+```bash
 # Create SSH tunnel on your local machine
 ssh -L 18780:localhost:18780 user@server
 
@@ -32,14 +99,11 @@ http://localhost:18780
 ### Public Access Mode
 
 ```bash
-# Clone and deploy
-git clone https://github.com/enzowyf/uni-dashboard.git
-cd uni-dashboard
-sudo bash deploy.sh public
-
-# Open browser
+# Open browser directly
 http://your-public-ip:18780
 ```
+
+---
 
 ## Modes Comparison
 
@@ -50,12 +114,11 @@ http://your-public-ip:18780
 
 **Note:** Both modes require password verification after opening the page.
 
+---
+
 ## Dynamic Entry Management
 
-### Default Entry
-- **Gateway Dashboard** (port 18789) - Pre-configured, cannot be deleted
-
-### Add New Entry
+### Add Entry
 1. Click "➕ Add Entry" button on the portal page
 2. Enter entry name (e.g., "Grafana")
 3. Enter port number (e.g., 3000)
@@ -66,26 +129,7 @@ http://your-public-ip:18780
 - Hover over non-default entries to reveal the × button
 - Click × to delete (default entry cannot be deleted)
 
-### Configuration Storage
-- Entries are stored in `/opt/uni-dashboard/data/services.json`
-- Survives service restarts
-
-## Page Flow
-
-```
-First Visit                          Subsequent Visits
-   │                                        │
-   ▼                                        ▼
-Set Password ─────────────────────────▶ Login Page
-   │                                        │
-   │ Enter + Confirm                        │ Enter Password
-   ▼                                        ▼
-Portal Page ◀───────────────────────── Portal Page
-   │
-   ├─→ Gateway Dashboard (default)
-   ├─→ Memory Viewer
-   └─→ Custom entries...
-```
+---
 
 ## Configuration
 
@@ -120,14 +164,7 @@ Edit `config.json` to customize:
 | `entries[].desc` | Description |
 | `entries[].is_default` | If true, cannot be deleted |
 
-## Port Planning
-
-| Service | Port |
-|---------|------|
-| Uni Dashboard | 18780 |
-| Gateway Dashboard | 18789 |
-| Memory Viewer | 18799 |
-| Custom entries | User-defined |
+---
 
 ## Troubleshooting
 
@@ -148,6 +185,8 @@ sudo systemctl restart uni-dashboard
 cat /opt/uni-dashboard/data/services.json
 ```
 
+---
+
 ## Tech Stack
 
 - **Backend**: FastAPI + uvicorn
@@ -155,18 +194,22 @@ cat /opt/uni-dashboard/data/services.json
 - **Authentication**: SHA256 hashing + UUID tokens
 - **Storage**: JSON files (no database required)
 
+---
+
 ## Changelog
 
 ### v1.1.0
 - ➕ Dynamic entry management (add/remove via UI)
 - 🔒 Gateway Dashboard as default non-deletable entry
 - 💾 Persistent configuration storage
+- 📝 List-based config format
 
 ### v1.0.0
 - Initial release
 - SSH tunneling and public access modes
 - Password protection
-- Gateway Dashboard and Memory Viewer entries
+
+---
 
 ## License
 
