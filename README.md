@@ -74,25 +74,25 @@ sudo systemctl start uni-dashboard
 
 ## Access
 
-### 🖥️ 本机部署 (Local Deployment)
+### 🖥️ Local Deployment
 
-如果 Uni Dashboard 部署在**本机**，直接通过 `localhost` 访问，**无需 SSH 映射**。
+If Uni Dashboard is deployed on your **local machine**, access directly via `localhost` without SSH tunneling.
 
 ```bash
-# 1. 启动服务（本机监听）
+# 1. Start service (local listening)
 python src/server.py --public
-# 或指定端口
+# Or specify port
 python src/server.py --public --port 18780
 
-# 2. 直接访问
-# 浏览器打开：http://localhost:18780
-# 或：http://127.0.0.1:18780
+# 2. Access directly
+# Open browser: http://localhost:18780
+# Or: http://127.0.0.1:18780
 ```
 
-**前提条件：**
-- 服务需监听 `0.0.0.0` 或 `127.0.0.1`
-- 本地防火墙允许对应端口
-- 端口未被其他程序占用
+**Prerequisites:**
+- Service must listen on `0.0.0.0` or `127.0.0.1`
+- Local firewall must allow the port
+- Port must not be occupied by other processes
 
 ---
 
@@ -124,28 +124,28 @@ Then just `ssh myserver` to connect with tunnel.
 
 ---
 
-### 🔀 多端口 SSH 映射 (Multi-Port SSH Forwarding)
+### 🔀 Multi-Port SSH Forwarding
 
-当需要同时访问服务器上**多个服务**时，可以一次性映射多个端口。
+When you need to access **multiple services** on the server simultaneously, you can forward multiple ports at once.
 
-#### 方法一：单条命令映射多个端口
+#### Method 1: Single Command with Multiple Ports
 
 ```bash
-# 使用多个 -L 参数
+# Use multiple -L parameters
 ssh -L 18780:localhost:18780 \
     -L 18789:localhost:18789 \
     -L 18799:localhost:18799 \
     user@server
 
-# 映射后访问：
+# After forwarding, access:
 # http://localhost:18780  (Uni Dashboard)
 # http://localhost:18789  (Gateway Dashboard)
 # http://localhost:18799  (Memory Viewer)
 ```
 
-#### 方法二：SSH 配置文件（推荐）
+#### Method 2: SSH Config File (Recommended)
 
-编辑 `~/.ssh/config`：
+Edit `~/.ssh/config`:
 
 ```bash
 Host myserver
@@ -157,23 +157,23 @@ Host myserver
     LocalForward 18789 localhost:18789
     # Memory Viewer
     LocalForward 18799 localhost:18799
-    # 保持连接
+    # Keep connection alive
     ServerAliveInterval 60
     ServerAliveCountMax 3
 ```
 
-使用配置：
+Usage:
 ```bash
-# 只需输入
+# Just type
 ssh myserver
 
-# 所有端口自动映射完成！
+# All ports are automatically forwarded!
 ```
 
-#### 方法三：后台持久化映射
+#### Method 3: Persistent Background Forwarding
 
 ```bash
-# 使用 autossh 保持连接持久（需先安装：apt install autossh）
+# Use autossh for persistent connection (install first: apt install autossh)
 autossh -M 0 -f -N \
   -L 18780:localhost:18780 \
   -L 18789:localhost:18789 \
@@ -181,26 +181,26 @@ autossh -M 0 -f -N \
   user@server
 ```
 
-#### 常用端口参考
+#### Common Ports Reference
 
-| 本地端口 | 远程端口 | 服务 | 访问地址 |
-|---------|---------|------|---------|
+| Local Port | Remote Port | Service | Access URL |
+|-----------|-------------|---------|------------|
 | 18780 | 18780 | Uni Dashboard | http://localhost:18780 |
 | 18789 | 18789 | Gateway Dashboard | http://localhost:18789 |
 | 18799 | 18799 | Memory Viewer | http://localhost:18799 |
 
-#### 常用 SSH 参数
+#### Common SSH Parameters
 
-| 参数 | 说明 |
-|-----|------|
-| `-L` | 本地端口转发 (Local Forward) |
-| `-N` | 不执行远程命令，仅转发 |
-| `-f` | 后台运行 |
-| `-C` | 启用压缩 |
-| `-v` | 详细模式（调试用） |
+| Parameter | Description |
+|-----------|-------------|
+| `-L` | Local port forwarding |
+| `-N` | Do not execute remote command, forwarding only |
+| `-f` | Run in background |
+| `-C` | Enable compression |
+| `-v` | Verbose mode (for debugging) |
 
 ```bash
-# 完整示例：后台 + 压缩 + 不执行命令
+# Complete example: background + compression + forwarding only
 ssh -f -N -C -L 18780:localhost:18780 user@server
 ```
 
@@ -259,61 +259,61 @@ Edit `config.json`:
 
 ---
 
-## ❓ 常见问题 (FAQ)
+## ❓ FAQ
 
-### Q1: 本机部署后无法访问？
+### Q1: Cannot access after local deployment?
 
 ```bash
-# 检查服务是否启动
+# Check if service is running
 netstat -tlnp | grep 18780
 
-# 检查防火墙
+# Check firewall
 sudo ufw status
-sudo ufw allow 18780/tcp  # 如需开放
+sudo ufw allow 18780/tcp  # If needed
 
-# 确保使用 --public 参数启动
+# Ensure using --public parameter
 python src/server.py --public
 ```
 
-### Q2: SSH 隧道连接后立刻断开？
+### Q2: SSH tunnel disconnects immediately?
 
 ```bash
-# 添加保持连接参数
+# Add keep-alive parameters
 ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 \
     -L 18780:localhost:18780 user@server
 ```
 
-### Q3: 提示端口已被占用？
+### Q3: Port already in use?
 
 ```bash
-# 查看占用端口的进程
+# Check process using the port
 lsof -i :18780
-# 或
+# Or
 netstat -tlnp | grep 18780
 
-# 解决方案：
-# 1. 关闭占用端口的进程
-# 2. 或更换端口启动
+# Solutions:
+# 1. Kill the process occupying the port
+# 2. Or start with different port
 python src/server.py --port 8080
 ```
 
-### Q4: 如何查看已建立的 SSH 隧道？
+### Q4: How to check established SSH tunnels?
 
 ```bash
-# 查看 SSH 进程
+# Check SSH processes
 ps aux | grep ssh
 
-# 查看端口监听
+# Check port listening
 netstat -tlnp | grep 18780
 ```
 
-### Q5: 如何关闭 SSH 隧道？
+### Q5: How to close SSH tunnel?
 
 ```bash
-# 找到进程 ID 后终止
+# Find PID and terminate
 kill <PID>
 
-# 或前台运行时按 Ctrl+C
+# Or press Ctrl+C if running in foreground
 ```
 
 ---
