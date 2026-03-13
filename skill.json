@@ -1,0 +1,33 @@
+{
+  "name": "uni-dashboard",
+  "displayName": "Uni Dashboard",
+  "version": "1.0.0",
+  "type": "experience",
+  "description": "A unified portal for multiple web UIs with password protection. Supports SSH tunneling, public access modes, and dynamic entry management.",
+  "descriptionZh": "OpenClaw 多 Web UI 统一门户，支持密码保护、SSH 映射、公网访问和动态入口管理。",
+  "tags": ["portal", "auth", "fastapi", "dashboard", "reverse-proxy", "ssh", "openclaw", "uni-dashboard"],
+  "license": "MIT",
+  "author": "enzowyf",
+  "repository": "https://github.com/enzowyf/uni-dashboard",
+  "homepage": "https://github.com/enzowyf/uni-dashboard#readme",
+  "main": "src/server.py",
+  "requirements": ["fastapi", "uvicorn", "httpx", "python-multipart"],
+  "scripts": {
+    "start": "python src/server.py",
+    "start:public": "python src/server.py --public",
+    "deploy": "sudo bash deploy.sh"
+  },
+  "engines": {
+    "python": ">=3.9"
+  },
+  "files": [
+    "src/",
+    "config.json",
+    "deploy.sh",
+    "requirements.txt",
+    "uni-dashboard.service",
+    "LICENSE",
+    "README.md",
+    "README_CN.md"
+  ]
+}
