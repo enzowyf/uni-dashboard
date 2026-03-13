@@ -74,7 +74,29 @@ sudo systemctl start uni-dashboard
 
 ## Access
 
-### SSH Tunneling Mode (Default)
+### 🖥️ 本机部署 (Local Deployment)
+
+如果 Uni Dashboard 部署在**本机**，直接通过 `localhost` 访问，**无需 SSH 映射**。
+
+```bash
+# 1. 启动服务（本机监听）
+python src/server.py --public
+# 或指定端口
+python src/server.py --public --port 18780
+
+# 2. 直接访问
+# 浏览器打开：http://localhost:18780
+# 或：http://127.0.0.1:18780
+```
+
+**前提条件：**
+- 服务需监听 `0.0.0.0` 或 `127.0.0.1`
+- 本地防火墙允许对应端口
+- 端口未被其他程序占用
+
+---
+
+### 🔐 SSH Tunneling Mode (Default)
 
 **Step 1: Create SSH tunnel on your local machine**
 ```bash
@@ -99,6 +121,88 @@ Host myserver
     LocalForward 18780 localhost:18780
 ```
 Then just `ssh myserver` to connect with tunnel.
+
+---
+
+### 🔀 多端口 SSH 映射 (Multi-Port SSH Forwarding)
+
+当需要同时访问服务器上**多个服务**时，可以一次性映射多个端口。
+
+#### 方法一：单条命令映射多个端口
+
+```bash
+# 使用多个 -L 参数
+ssh -L 18780:localhost:18780 \
+    -L 18789:localhost:18789 \
+    -L 18799:localhost:18799 \
+    user@server
+
+# 映射后访问：
+# http://localhost:18780  (Uni Dashboard)
+# http://localhost:18789  (Gateway Dashboard)
+# http://localhost:18799  (Memory Viewer)
+```
+
+#### 方法二：SSH 配置文件（推荐）
+
+编辑 `~/.ssh/config`：
+
+```bash
+Host myserver
+    HostName your-server-ip
+    User your-username
+    # Uni Dashboard
+    LocalForward 18780 localhost:18780
+    # Gateway Dashboard
+    LocalForward 18789 localhost:18789
+    # Memory Viewer
+    LocalForward 18799 localhost:18799
+    # 保持连接
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+```
+
+使用配置：
+```bash
+# 只需输入
+ssh myserver
+
+# 所有端口自动映射完成！
+```
+
+#### 方法三：后台持久化映射
+
+```bash
+# 使用 autossh 保持连接持久（需先安装：apt install autossh）
+autossh -M 0 -f -N \
+  -L 18780:localhost:18780 \
+  -L 18789:localhost:18789 \
+  -L 18799:localhost:18799 \
+  user@server
+```
+
+#### 常用端口参考
+
+| 本地端口 | 远程端口 | 服务 | 访问地址 |
+|---------|---------|------|---------|
+| 18780 | 18780 | Uni Dashboard | http://localhost:18780 |
+| 18789 | 18789 | Gateway Dashboard | http://localhost:18789 |
+| 18799 | 18799 | Memory Viewer | http://localhost:18799 |
+
+#### 常用 SSH 参数
+
+| 参数 | 说明 |
+|-----|------|
+| `-L` | 本地端口转发 (Local Forward) |
+| `-N` | 不执行远程命令，仅转发 |
+| `-f` | 后台运行 |
+| `-C` | 启用压缩 |
+| `-v` | 详细模式（调试用） |
+
+```bash
+# 完整示例：后台 + 压缩 + 不执行命令
+ssh -f -N -C -L 18780:localhost:18780 user@server
+```
 
 ### Public Access Mode
 
@@ -151,6 +255,65 @@ Edit `config.json`:
     }
   ]
 }
+```
+
+---
+
+## ❓ 常见问题 (FAQ)
+
+### Q1: 本机部署后无法访问？
+
+```bash
+# 检查服务是否启动
+netstat -tlnp | grep 18780
+
+# 检查防火墙
+sudo ufw status
+sudo ufw allow 18780/tcp  # 如需开放
+
+# 确保使用 --public 参数启动
+python src/server.py --public
+```
+
+### Q2: SSH 隧道连接后立刻断开？
+
+```bash
+# 添加保持连接参数
+ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 \
+    -L 18780:localhost:18780 user@server
+```
+
+### Q3: 提示端口已被占用？
+
+```bash
+# 查看占用端口的进程
+lsof -i :18780
+# 或
+netstat -tlnp | grep 18780
+
+# 解决方案：
+# 1. 关闭占用端口的进程
+# 2. 或更换端口启动
+python src/server.py --port 8080
+```
+
+### Q4: 如何查看已建立的 SSH 隧道？
+
+```bash
+# 查看 SSH 进程
+ps aux | grep ssh
+
+# 查看端口监听
+netstat -tlnp | grep 18780
+```
+
+### Q5: 如何关闭 SSH 隧道？
+
+```bash
+# 找到进程 ID 后终止
+kill <PID>
+
+# 或前台运行时按 Ctrl+C
 ```
 
 ---
